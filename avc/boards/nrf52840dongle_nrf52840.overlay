@@ -1,0 +1,167 @@
+/ {
+	chosen {
+		/*
+		 * In some default configurations within the nRF Connect SDK,
+		 * e.g. on nRF52840 and nRF9160, the chosen zephyr,entropy node
+		 * is &cryptocell. This devicetree overlay ensures that default
+		 * is overridden wherever it is set, as this application uses
+		 * the RNG node for entropy exclusively.
+		 */
+		zephyr,entropy = &rng;
+		ncs,zboss-trace-uart = &cdc_acm_uart0;
+	};
+
+	aliases {
+		led-state-green = &led1_green;
+		led-state-red = &led1_red;
+		led-state-blue = &led1_blue;
+		led-activity = &led0_green;
+		led-ir = &led2_ir;
+		rf-pin = &rf_pin;
+		rf-pin-cc1101 = &rf_pin_cc1101;
+	};
+
+	io_pins {
+		compatible = "gpio-keys";
+
+		/* lower left pins */
+		relays: _relays {
+			gpios = <&gpio1 10 GPIO_ACTIVE_LOW>,
+				<&gpio1 13 GPIO_ACTIVE_LOW>;
+			label = "relays";
+		};
+
+		strap_pins: _strap_pins {
+			gpios = <&gpio0 17 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>,
+				<&gpio0 20 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>,
+				<&gpio0 22 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "Strap configuration";
+		};
+
+		spi_cs: _spi_cs {
+			gpios = <&gpio0 22 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+			label = "SPI CSn line";
+		};
+
+		led2_ir: led_2_ir {
+			/* lower left, 4th from edge */
+			gpios = <&gpio1 15 GPIO_ACTIVE_LOW>;
+			label = "IR LED 0";
+		};
+
+		rf_pin: _rf_pin {
+			/* lower left, 5th from edge */
+			gpios = <&gpio0 2 0>;
+			label = "RF output on header (pin 4)";
+		};
+
+		rf_pin_cc1101: _rf_pin_cc1101 {
+			gpios = <&gpio0 31 0>;
+			label = "RF output routed to CC1101 GD0";
+		};
+	};
+};
+
+&uart0 {
+	/* upper right pins, TX on the outside */
+	pinctrl-0 = <&uart0_default>;
+	pinctrl-1 = <&uart0_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&uart1 {
+	compatible = "nordic,nrf-uarte";
+	status = "okay";
+	current-speed = < 9600 >;
+
+	/* upper left pins, TX on the outside */
+	pinctrl-0 = <&uart1_default>;
+	pinctrl-1 = <&uart1_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&spi0 {
+	compatible = "nordic,nrf-spi";
+	status = "okay";
+	pinctrl-0 = <&spi0_default_alt>;
+	pinctrl-1 = <&spi0_sleep_alt>;
+	pinctrl-names = "default", "sleep";
+
+	// The SPI_NRFX_SPI_DEVICE() initializer calls
+	// spi_context_cs_configure_all() at boot time, which configures
+	// the "cs-gpios" as outputs.  Since this pin is also a strap pin,
+	// we want to leave it configured as an input until we know for sure
+	// (from the strapping) that this is a CC1101 board.  On a non-CC1101
+	// board this GPIO could be tied to ground.
+	//cs-gpios = <&gpio0 22 GPIO_ACTIVE_LOW>;
+};
+
+&i2c0 {
+	// avoid DT conflict
+	status = "disabled";
+};
+
+&pinctrl {
+	spi0_default_alt: spi0_default_alt {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 0, 24)>,
+				<NRF_PSEL(SPIM_MISO, 1, 0)>,
+				<NRF_PSEL(SPIM_MOSI, 0, 17)>;
+		};
+	};
+
+	spi0_sleep_alt: spi0_sleep_alt {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 0, 24)>,
+				<NRF_PSEL(SPIM_MISO, 1, 0)>,
+				<NRF_PSEL(SPIM_MOSI, 0, 17)>;
+			low-power-enable;
+		};
+	};
+
+	uart0_default: uart0_default {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 0, 13)>;
+		};
+		group2 {
+			psels = <NRF_PSEL(UART_RX, 0, 15)>;
+			bias-pull-up;
+		};
+	};
+
+	uart0_sleep: uart0_sleep {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 0, 13)>;
+		};
+		group2 {
+			psels = <NRF_PSEL(UART_RX, 0, 15)>;
+			bias-pull-up;
+		};
+	};
+
+	uart1_default: uart1_default {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 0, 10)>;
+		};
+		group2 {
+			psels = <NRF_PSEL(UART_RX, 0, 9)>;
+			bias-pull-up;
+		};
+	};
+
+	uart1_sleep: uart1_sleep {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 0, 10)>;
+		};
+		group2 {
+			psels = <NRF_PSEL(UART_RX, 0, 9)>;
+			bias-pull-up;
+		};
+	};
+};
+
+&zephyr_udc0 {
+	cdc_acm_uart0: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};

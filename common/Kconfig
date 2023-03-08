@@ -1,0 +1,5 @@
+config DATE_CODE
+	string "Zigbee firmware build date attribute"
+	default "00000000"
+
+source "Kconfig.zephyr"

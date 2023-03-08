@@ -1,0 +1,36 @@
+mcuboot:
+  address: 0x0
+  size: 0xc000
+
+mcuboot_primary:
+  address: 0xc000
+  size: 0x74000
+mcuboot_pad:
+  address: 0xc000
+  size: 0x200
+app:
+  address: 0xc200
+  size: 0x73e00
+mcuboot_primary_app:
+  address: 0xc200
+  size: 0x73e00
+  span: [ app ]
+
+mcuboot_secondary:
+  address: 0x80000
+  size: 0x74000
+
+zboss_nvram:
+  address: 0xf5000
+  size: 0x8000
+zboss_product_config:
+  address: 0xfd000
+  size: 0x1000
+settings_storage:
+  address: 0xfe000
+  size: 0x2000
+
+sram_primary:
+  address: 0x20000000
+  size: 0x40000
+  region: sram_primary

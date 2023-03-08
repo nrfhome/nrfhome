@@ -1,0 +1,1 @@
+../../common/zb_mem_config_custom_max.h

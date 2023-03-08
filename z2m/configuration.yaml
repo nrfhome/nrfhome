@@ -1,0 +1,7 @@
+# Add to existing configuration.yaml:
+
+external_converters:
+  - nrf-avc.js
+  - nrf-switch.js
+ota:
+  zigbee_ota_override_index_location: ota.json

@@ -1,0 +1,20 @@
+app:
+  address: 0x0
+  size: 0xd5000
+
+# This sacrifices some app code space in order to match the other dongle
+# build
+zboss_nvram:
+  address: 0xd5000
+  size: 0x8000
+zboss_product_config:
+  address: 0xdd000
+  size: 0x1000
+settings_storage:
+  address: 0xde000
+  size: 0x2000
+
+# Unused, but the partition manager script aborts if this entry is absent
+placeholder_for_bootloader_reserved:
+  address: 0xe0000
+  size: 0x20000

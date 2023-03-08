@@ -1,0 +1,88 @@
+/ {
+	chosen {
+		/*
+		 * In some default configurations within the nRF Connect SDK,
+		 * e.g. on nRF52840 and nRF9160, the chosen zephyr,entropy node
+		 * is &cryptocell. This devicetree overlay ensures that default
+		 * is overridden wherever it is set, as this application uses
+		 * the RNG node for entropy exclusively.
+		 */
+		zephyr,entropy = &rng;
+		ncs,zboss-trace-uart = &cdc_acm_uart0;
+	};
+
+	aliases {
+		led-state-green = &led0;
+		led-state-red = &led2;
+		led-state-blue = &led3;
+		led-activity = &led1;
+		led-ir = &led2_ir;
+		rf-pin = &rf_pin;
+	};
+
+	relay_list {
+		compatible = "gpio-keys";
+		/* upper left */
+		relays: _relays {
+			gpios = <&gpio0 27 GPIO_ACTIVE_LOW>,
+				<&gpio0 26 GPIO_ACTIVE_LOW>;
+			label = "relays";
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		led2_ir: led_2_ir {
+			/* upper left, third pin */
+			gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
+			label = "IR LED 0";
+		};
+	};
+
+	rf {
+		compatible = "gpio-keys";
+		rf_pin: _rf_pin {
+			/* upper left, fifth pin */
+			gpios = <&gpio1 15 0>;
+			label = "rf_bit";
+		};
+	};
+};
+
+&uart1 {
+	compatible = "nordic,nrf-uarte";
+	status = "okay";
+	current-speed = < 9600 >;
+
+	pinctrl-0 = <&uart1_default>;
+	pinctrl-1 = <&uart1_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&pinctrl {
+	uart1_default: uart1_default {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 1, 5)>;
+		};
+		group2 {
+			psels = <NRF_PSEL(UART_RX, 1, 4)>;
+			bias-pull-up;
+		};
+	};
+
+	uart1_sleep: uart1_sleep {
+		group1 {
+			psels = <NRF_PSEL(UART_TX, 1, 5)>;
+		};
+		group2 {
+			psels = <NRF_PSEL(UART_RX, 1, 4)>;
+			bias-pull-up;
+		};
+	};
+};
+
+&zephyr_udc0 {
+	cdc_acm_uart0: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
