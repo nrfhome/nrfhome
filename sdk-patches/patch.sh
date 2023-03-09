@@ -7,6 +7,5 @@ set -x
 OPTIONS="${1:-}"
 
 patch ${OPTIONS} --directory=${ZEPHYR_BASE}/../nrfxlib -p1 < zigbee-diagnostics.patch
-patch ${OPTIONS} --directory=${ZEPHYR_BASE}/../nrfxlib -p1 < zigbee-elec-measurement.patch
 
 exit 0
