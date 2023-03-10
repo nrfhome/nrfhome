@@ -41,6 +41,27 @@ extern zb_af_endpoint_desc_t zigbee_fota_client_ep;
 // Hold down button0 for 8 seconds to reset the switch
 #define RESET_BUTTON			0
 
+/*
+ * A lithium AAA cell is about 1200mAh = 4320C (Coulombs).
+ * A CR123A is about 1500mAh = 5400C.
+ * Steady state power consumption is ~1.5C per day.
+ *
+ * One single failed rejoin "cycle" consumes ~0.65C.  Repeating these
+ * cycles over and over again would quickly drain the battery.
+ *
+ * So, to conserve battery life, zigbee_app_utils stops rejoin attempts
+ * after ZB_DEV_REJOIN_TIMEOUT_MS if the network disappears (like during
+ * a power outage).  It will not attempt another rejoin until
+ * user_input_indicate() is called.
+ *
+ * Unfortunately that means that even many hours after the power outage is
+ * over, the switch will be temporarily unresponsive to user input.
+ * We can work around this by periodically making rejoin attempts, up
+ * to a limit.
+ */
+#define REJOIN_INTERVAL_MS		(60 * 60 * 1000)
+#define REJOIN_ATTEMPT_LIMIT		24
+
 /* Do not erase NVRAM to save the network parameters after device reboot or
  * power-off. NOTE: If this option is set to ZB_TRUE then do full device erase
  * for all network devices before running other samples.
@@ -79,6 +100,8 @@ struct led_state {
 	struct k_timer led_timer;
 };
 static struct led_state led_state;
+static bool is_joined = false;
+static int rejoin_timeouts = 0;
 
 static void led_pulse(struct led_state *state, zb_uint32_t mask);
 
@@ -238,7 +261,7 @@ void zboss_signal_handler(zb_bufid_t bufid)
 {
 	zb_zdo_app_signal_hdr_t    *sig_hndler = NULL;
 	zb_zdo_app_signal_type_t    sig = zb_get_app_signal(bufid, &sig_hndler);
-	//zb_ret_t                    status = ZB_GET_APP_SIGNAL_STATUS(bufid);
+	zb_ret_t                    status = ZB_GET_APP_SIGNAL_STATUS(bufid);
 
 #ifdef CONFIG_ZIGBEE_FOTA
 	/* Pass signal to the OTA client implementation. */
@@ -251,8 +274,29 @@ void zboss_signal_handler(zb_bufid_t bufid)
 	case ZB_BDB_SIGNAL_STEERING:
 		/* Call default signal handler. */
 		ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
-		led_pulse(&led_state, LED_MASK_GREEN);
+
+		if (status == RET_OK) {
+			led_pulse(&led_state, LED_MASK_GREEN);
+			is_joined = true;
+			rejoin_timeouts = 0;
+		} else {
+			is_joined = false;
+		}
 		break;
+	case ZB_BDB_SIGNAL_TC_REJOIN_DONE:
+		ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
+		if (status == RET_OK)
+			break;
+		if (rejoin_timeouts >= REJOIN_ATTEMPT_LIMIT)
+			break;
+
+		rejoin_timeouts++;
+		ZB_ERROR_CHECK(ZB_SCHEDULE_APP_ALARM(
+			(zb_callback_t)user_input_indicate, 0,
+			ZB_MILLISECONDS_TO_BEACON_INTERVAL(
+				REJOIN_INTERVAL_MS)));
+		break;
+
 	case ZB_ZDO_SIGNAL_LEAVE:
 		/* Call default signal handler. */
 		ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
@@ -385,15 +429,17 @@ static void button_pressed_worker(struct k_work *work)
 
 	/* Inform default signal handler about user input at the device. */
 	user_input_indicate();
-	invoke_light_switch_sender(sw->button_idx | FLAG_INITIAL_PRESS);
+	if (is_joined) {
+		invoke_light_switch_sender(sw->button_idx | FLAG_INITIAL_PRESS);
+	} else {
+		led_pulse(&led_state, LED_MASK_RED);
+	}
 }
 
 static void button_released_worker(struct k_work *work)
 {
 	struct sw *sw = CONTAINER_OF(work, struct sw, button_released_work);
 
-	/* Inform default signal handler about user input at the device. */
-	user_input_indicate();
 	invoke_light_switch_sender(sw->button_idx | FLAG_RELEASE);
 }
 
