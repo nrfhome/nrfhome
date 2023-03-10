@@ -565,7 +565,7 @@ static void reset_on_sw1(void)
 
 void main(void)
 {
-	LOG_INF("Starting ZBOSS Light Switch example");
+	LOG_INF("Starting SED light switch");
 
 	/* Initialize. */
 	reset_on_sw1();
@@ -599,7 +599,7 @@ void main(void)
 	/* Start Zigbee default thread. */
 	zigbee_enable();
 
-	LOG_INF("ZBOSS Light Switch example started");
+	LOG_INF("SED light switch started");
 
 	while (1) {
 		k_sleep(K_FOREVER);
