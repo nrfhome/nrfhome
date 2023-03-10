@@ -61,5 +61,5 @@ test:
 release:
 	$(if $(ZIGBEE_RELEASE_PATH),,$(error Please set $$ZIGBEE_RELEASE_PATH))
 	$(MAKE) ota
-	scp build/zephyr/*.zigbee $(ZIGBEE_RELEASE_PATH)/$(MODULE_NAME).zigbee
-	scp build/zephyr/merged.hex $(ZIGBEE_RELEASE_PATH)/$(MODULE_NAME).hex
+	scp build/zephyr/*.zigbee $(ZIGBEE_RELEASE_PATH)/nrfhome-$(MODULE_NAME).zigbee
+	scp build/zephyr/merged.hex $(ZIGBEE_RELEASE_PATH)/nrfhome-$(MODULE_NAME).hex

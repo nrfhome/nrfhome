@@ -1,8 +1,8 @@
 [
 	{
-		"url": "light-switch.zigbee"
+		"url": "nrfhome-switch.zigbee"
 	},
 	{
-		"url": "avc.zigbee"
+		"url": "nrfhome-avc.zigbee"
 	}
 ]
