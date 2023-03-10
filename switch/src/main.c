@@ -76,7 +76,7 @@ struct sw {
 	struct k_timer button_debounce_timer;
 	struct k_timer button_press_timer;
 	struct gpio_callback button_cb;
-	zb_uint32_t press_time;
+	uint64_t press_time;
 };
 static struct sw button_sw[MAX_INPUT_BUTTONS];
 
@@ -410,8 +410,7 @@ static void invoke_light_switch_sender(zb_uint16_t idx_and_flags)
 static void button_long_press_handler(struct k_timer *work)
 {
 	struct sw *sw = CONTAINER_OF(work, struct sw, button_press_timer);
-	zb_uint32_t duration =
-		k_cyc_to_ms_floor32(k_cycle_get_32() - sw->press_time);
+	int64_t duration = k_uptime_get() - sw->press_time;
 
 	if (duration >= 8000) {
 		if (sw->button_idx == RESET_BUTTON) {
@@ -449,7 +448,7 @@ static void button_debounce_handler(struct k_timer *work)
 
 	int val = gpio_pin_get_dt(sw->gpio);
 	if (val) {
-		sw->press_time = k_cycle_get_32();
+		sw->press_time = k_uptime_get();
 		k_timer_start(&sw->button_press_timer, K_MSEC(2000), K_NO_WAIT);
 		k_work_submit(&sw->button_pressed_work);
 	} else {
@@ -593,12 +592,12 @@ static void reset_on_sw1(void)
 	// corrupt and causing ZBOSS assertions)
 	k_sleep(K_MSEC(1));
 
-	uint32_t start_time = k_cycle_get_32();
+	uint32_t start_time = k_uptime_get_32();
 	while (gpio_pin_get_dt(&sw0_gpio)) {
 		gpio_pin_set_dt(&led_gpio, 1);
 
-		uint32_t now = k_cycle_get_32();
-		if (k_cyc_to_ms_floor32(now - start_time) > SW_RESET_DURATION_MS) {
+		uint32_t now = k_uptime_get_32();
+		if ((now - start_time) > SW_RESET_DURATION_MS) {
 			zb_nvram_erase();
 			gpio_pin_set_dt(&led_gpio, 0);
 			k_sleep(K_SECONDS(2));
