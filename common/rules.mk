@@ -1,5 +1,9 @@
 BUILD_DIR := build
-WEST_BUILD := west build --pristine --build-dir=$(BUILD_DIR)
+
+ifeq ($(V),1)
+VERBOSE_OPTION := -v
+endif
+WEST_BUILD := west $(VERBOSE_OPTION) build --pristine --build-dir=$(BUILD_DIR)
 
 IMAGE_VERSION = $(shell $(TOP_DIR)/scripts/unix-time-to-version.sh)
 IMAGE_DATE = $(shell date +%Y%m%d-%H%M)
