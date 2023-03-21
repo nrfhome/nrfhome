@@ -1,12 +1,7 @@
-BUILD_DIR := build
+include $(TOP_DIR)/common/base.mk
 
-ifeq ($(V),1)
-VERBOSE_OPTION := -v
-endif
-WEST_BUILD := west $(VERBOSE_OPTION) build --pristine --build-dir=$(BUILD_DIR)
-
-IMAGE_VERSION = $(shell $(TOP_DIR)/scripts/unix-time-to-version.sh)
-IMAGE_DATE = $(shell date +%Y%m%d-%H%M)
+WEST_BUILD := $(WEST) $(VERBOSE_OPTION) \
+	build --pristine --build-dir=$(BUILD_DIR)
 
 TRACE_ARGS := \
 	-DOVERLAY_CONFIG=overlay-ztrace.conf
@@ -25,7 +20,7 @@ OTA_ARGS = \
 
 .PHONY: build
 build:
-	cd $(BUILD_DIR) && ninja
+	cd $(BUILD_DIR) && $(NINJA)
 
 .PHONY: clean
 clean:
@@ -63,7 +58,7 @@ test:
 
 .PHONY: release
 release:
-	$(if $(ZIGBEE_RELEASE_PATH),,$(error Please set $$ZIGBEE_RELEASE_PATH))
 	$(MAKE) ota
-	scp build/zephyr/*.zigbee $(ZIGBEE_RELEASE_PATH)/nrfhome-$(MODULE_NAME).zigbee
-	scp build/zephyr/merged.hex $(ZIGBEE_RELEASE_PATH)/nrfhome-$(MODULE_NAME).hex
+	cp $(BUILD_DIR)/zephyr/*.zigbee $(BUILD_DIR)/nrfhome-$(MODULE_NAME).zigbee
+	cp $(BUILD_DIR)/zephyr/merged.hex $(BUILD_DIR)/nrfhome-$(MODULE_NAME).hex
+	scp $(BUILD_DIR)/nrfhome-$(MODULE_NAME).* $(ZIGBEE_RELEASE_PATH)

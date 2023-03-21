@@ -1,4 +1,4 @@
 MODULE_NAME = avc
 
-TOP_DIR := ..
+TOP_DIR := $(shell pwd)/..
 include $(TOP_DIR)/common/rules.mk
