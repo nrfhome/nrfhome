@@ -39,14 +39,15 @@ def toolchain_var_list(path, ncs_vers):
                   (k, v["type"]))
             continue
 
+        output_value = ""
         if v["existing_value_treatment"] == "overwrite":
-            output_value = ""
+            pass
         elif v["existing_value_treatment"] == "prepend_to":
-            output_value = os.environ[k]
+            if k in os.environ:
+                output_value = os.environ[k]
         else:
             print("warning: var '%s' has unknown existing_value_treatment '%s'" %
                 (k, v["existing_value_treatment"]))
-            output_value = ""
 
         # since this loop prepends each value, the first item in v["values"]
         # winds up at the end of the string
