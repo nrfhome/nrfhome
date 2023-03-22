@@ -33,11 +33,7 @@ dongle:
 
 .PHONY: ota
 ota:
-	$(if $(ZIGBEE_SIGNING_KEY),,$(error Please set $$ZIGBEE_SIGNING_KEY))
-	@if [ ! -e "$(ZIGBEE_SIGNING_KEY)" ]; then \
-		echo "Please run 'make setup' from the top level, or manually generate $$ZIGBEE_SIGNING_KEY"; \
-		exit 1; \
-	fi
+	@$(TOP_DIR)/scripts/check-signing-key.py $(ZIGBEE_SIGNING_KEY)
 	$(WEST_BUILD) --board nrf52840dongle_nrf52840 -- $(OTA_ARGS)
 
 .PHONY: raw
