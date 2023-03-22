@@ -1,6 +1,7 @@
 TOP_DIR := $(shell pwd)
 include $(TOP_DIR)/common/base.mk
 
+.DEFAULT_GOAL := all
 .PHONY: all
 all:
 	$(MAKE) -C zigbee-avc dongle

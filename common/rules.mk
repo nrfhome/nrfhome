@@ -18,6 +18,7 @@ OTA_ARGS = \
 	-D"CONFIG_MCUBOOT_IMAGE_VERSION=\"$(IMAGE_VERSION)\"" \
 	-D"CONFIG_DATE_CODE=\"$(IMAGE_DATE)\""
 
+.DEFAULT_GOAL := build
 .PHONY: build
 build:
 	cd $(BUILD_DIR) && $(NINJA)
