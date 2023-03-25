@@ -59,7 +59,7 @@ test:
 
 .PHONY: release
 release:
-	$(MAKE) ota
+	$(MAKE) ota ZIGBEE_SIGNING_KEY=$(ZIGBEE_RELEASE_KEY)
 	cp $(BUILD_DIR)/zephyr/*.zigbee $(BUILD_DIR)/nrfhome-$(MODULE_NAME).zigbee
 	cp $(BUILD_DIR)/zephyr/merged.hex $(BUILD_DIR)/nrfhome-$(MODULE_NAME).hex
 	scp $(BUILD_DIR)/nrfhome-$(MODULE_NAME).* $(ZIGBEE_RELEASE_PATH)

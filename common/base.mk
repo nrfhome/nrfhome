@@ -1,7 +1,14 @@
 NCS_VERSION := 2.3.0
 NCS_ENV := $(TOP_DIR)/scripts/ncs-env.py $(NCS_VERSION)
 
+# ZIGBEE_SIGNING_KEY is used for `make ota`
+# ZIGBEE_RELEASE_KEY is used for `make release`
+# This is done to simplify development and testing. `make ota` sometimes
+# breaks due to NCS updates, so it's useful to be able to test that build
+# configuration without having access to the "official" release key
+# used for actual OTA deployment to installed units.
 ZIGBEE_SIGNING_KEY ?= $(HOME)/.nrfhome/zigbee-signing.pem
+ZIGBEE_RELEASE_KEY ?= $(ZIGBEE_SIGNING_KEY)
 ZIGBEE_RELEASE_PATH ?= $(HOME)/.nrfhome/zrel
 
 BUILD_DIR := build
