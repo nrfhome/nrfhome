@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/bash
 
 set -ex
 
@@ -19,7 +19,9 @@ else
 fi
 
 function flash_dongle() {
-	nrfutil pkg generate --debug-mode --hw-version 52 --sd-req 0 --application ${BUILDDIR}/zephyr/merged.hex dfu.zip
+	nrfutil pkg generate \
+		--debug-mode --hw-version 52 --sd-req 0 \
+		--application "${HEXFILE}" dfu.zip
 
 	DEV=$(ls /dev/cu.* | awk '/usbmodem[0-9A-F]{13}/ { print }')
 	if [ -z "${DEV}" ]; then
@@ -33,6 +35,5 @@ function flash_dongle() {
 if grep -q "^CONFIG_BOARD_HAS_NRF5_BOOTLOADER=y" ${BUILDDIR}/zephyr/.config; then
 	flash_dongle
 else
-	#exec /opt/homebrew/bin/python3 /opt/nordic/ncs/current/toolchain/bin/pyocd flash -e sector -t nrf52840 */merged.hex
-	exec python3 -m pyocd flash -e sector -t nrf52840 "${HEXFILE}"
+	exec pyocd flash -e sector -t nrf52840 "${HEXFILE}"
 fi
