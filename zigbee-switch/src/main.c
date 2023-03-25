@@ -426,6 +426,16 @@ static void button_pressed_worker(struct k_work *work)
 {
 	struct sw *sw = CONTAINER_OF(work, struct sw, button_pressed_work);
 
+	/*
+	 * If the stack gave up on rejoining (probably due to a power failure)
+	 * and *then* the user hit a button when is_joined is still false,
+	 * reboot immediately.  The first keypress is lost but if the routers
+	 * are back up, the switch should reconnect ASAP.
+	 */
+	if (rejoin_timeouts) {
+		sys_reboot(SYS_REBOOT_COLD);
+	}
+
 	/* Inform default signal handler about user input at the device. */
 	user_input_indicate();
 	if (is_joined) {
