@@ -3,7 +3,7 @@ include $(TOP_DIR)/common/base.mk
 WEST_BUILD := $(WEST) $(VERBOSE_OPTION) \
 	build --pristine --build-dir=$(BUILD_DIR)
 
-TRACE_ARGS := \
+TRACE_ARGS = \
 	-DOVERLAY_CONFIG=overlay-ztrace.conf
 
 RAW_ARGS = \
@@ -17,6 +17,11 @@ OTA_ARGS = \
 	-D"mcuboot_CONFIG_BOOT_SIGNATURE_KEY_FILE=\"$(ZIGBEE_SIGNING_KEY)\"" \
 	-D"CONFIG_MCUBOOT_IMAGE_VERSION=\"$(IMAGE_VERSION)\"" \
 	-D"CONFIG_DATE_CODE=\"$(IMAGE_DATE)\""
+
+SHELL_ARGS = \
+	-DCONFIG_ZIGBEE_SHELL=y \
+	-DCONFIG_ZIGBEE_DEBUG_FUNCTIONS=y \
+	-DCONFIG_ZIGBEE_SHELL_ENDPOINT=10
 
 .DEFAULT_GOAL := build
 .PHONY: build
@@ -46,7 +51,9 @@ raw-trace:
 
 .PHONY: dk
 dk:
-	$(WEST_BUILD) --board nrf52840dk_nrf52840 -- $(TRACE_ARGS)
+	# FIXME: zigbee-avc crashes on startup when using TRACE_ARGS
+	#$(WEST_BUILD) --board nrf52840dk_nrf52840 -- $(TRACE_ARGS)
+	$(WEST_BUILD) --board nrf52840dk_nrf52840 -- $(SHELL_ARGS)
 
 .PHONY: test
 test:
