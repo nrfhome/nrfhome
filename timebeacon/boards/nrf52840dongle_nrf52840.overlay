@@ -1,0 +1,14 @@
+/ {
+	aliases {
+		led-state-green = &led1_green;
+		led-state-red = &led1_red;
+		led-state-blue = &led1_blue;
+		led-activity = &led0_green;
+	};
+};
+
+&zephyr_udc0 {
+	cdc_acm_uart0: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+	};
+};
