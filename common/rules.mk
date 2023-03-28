@@ -32,28 +32,29 @@ build:
 clean:
 	rm -rf $(BUILD_DIR)
 
-.PHONY: dongle
-dongle:
-	$(WEST_BUILD) --board nrf52840dongle_nrf52840
-
-.PHONY: ota
-ota:
-	@$(TOP_DIR)/scripts/check-signing-key.py $(ZIGBEE_SIGNING_KEY)
-	$(WEST_BUILD) --board nrf52840dongle_nrf52840 -- $(OTA_ARGS)
-
-.PHONY: raw
-raw:
-	$(WEST_BUILD) --board nrf52840dongle_nrf52840 -- $(RAW_ARGS)
-
-.PHONY: raw-trace
-raw-trace:
-	$(WEST_BUILD) --board nrf52840dongle_nrf52840 -- $(RAW_ARGS) $(TRACE_ARGS)
-
 .PHONY: dk
 dk:
 	# FIXME: zigbee-avc crashes on startup when using TRACE_ARGS
 	#$(WEST_BUILD) --board nrf52840dk_nrf52840 -- $(TRACE_ARGS)
 	$(WEST_BUILD) --board nrf52840dk_nrf52840 -- $(SHELL_ARGS)
+
+.PHONY: dongle
+dongle:
+	$(WEST_BUILD) --board nrf52840dongle_nrf52840
+
+.PHONY: raw
+raw:
+	$(WEST_BUILD) --board nrf52840dongle_nrf52840 -- $(RAW_ARGS)
+
+ifeq ($(MODULE_TYPE),zigbee)
+.PHONY: ota
+ota:
+	@$(TOP_DIR)/scripts/check-signing-key.py $(ZIGBEE_SIGNING_KEY)
+	$(WEST_BUILD) --board nrf52840dongle_nrf52840 -- $(OTA_ARGS)
+
+.PHONY: raw-trace
+raw-trace:
+	$(WEST_BUILD) --board nrf52840dongle_nrf52840 -- $(RAW_ARGS) $(TRACE_ARGS)
 
 .PHONY: test
 test:
@@ -70,6 +71,17 @@ release:
 	cp $(BUILD_DIR)/zephyr/*.zigbee $(BUILD_DIR)/nrfhome-$(MODULE_NAME).zigbee
 	cp $(BUILD_DIR)/zephyr/merged.hex $(BUILD_DIR)/nrfhome-$(MODULE_NAME).hex
 	scp $(BUILD_DIR)/nrfhome-$(MODULE_NAME).* $(ZIGBEE_RELEASE_PATH)
+
+else
+
+.PHONY: test
+test:
+	$(MAKE) clean
+	$(MAKE) dk
+	$(MAKE) dongle
+	$(MAKE) raw
+
+endif
 
 .PHONY: flash
 flash:
