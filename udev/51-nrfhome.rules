@@ -1,1 +1,3 @@
 SUBSYSTEM=="tty", ATTRS{manufacturer}=="nRF52840", ATTRS{product}=="timebeacon", MODE="0660", GROUP="dialout", SYMLINK+="timebeacon"
+
+SUBSYSTEM=="tty", ATTRS{manufacturer}=="SEGGER", ATTRS{product}=="J-Link", MODE="0660", GROUP="dialout", SYMLINK+="jlink"
