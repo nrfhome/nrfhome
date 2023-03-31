@@ -1,21 +1,23 @@
 TOP_DIR := $(shell pwd)
 include $(TOP_DIR)/common/base.mk
 
+foreach_project = \
+	$(MAKE) -C zigbee-avc $(1) && \
+	$(MAKE) -C zigbee-switch $(1) && \
+	$(MAKE) -C timebeacon $(1)
+
 .DEFAULT_GOAL := all
 .PHONY: all
 all:
-	$(MAKE) -C zigbee-avc dongle
-	$(MAKE) -C zigbee-switch dongle
+	$(call foreach_project,dongle)
 
 .PHONY: clean
 clean:
-	$(MAKE) -C zigbee-avc clean
-	$(MAKE) -C zigbee-switch clean
+	$(call foreach_project,clean)
 
 .PHONY: test
 test:
-	$(MAKE) -C zigbee-avc test
-	$(MAKE) -C zigbee-switch test
+	$(call foreach_project,test)
 
 .PHONY: setup
 setup:
