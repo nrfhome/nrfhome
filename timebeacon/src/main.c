@@ -63,16 +63,15 @@ uint32_t channel_to_freq(uint8_t channel)
 
 static uint8_t timebeacon_pkt[] = {
 	// ADV_NONCONN_IND (0x02), length
-	0x02, 0x20,
+	0x02, 0x18,
 	// MAC address
 	0x09, 0x09, 0x09, 0x09, 0x09, 0x09,
 	// Service Data - 128 bit UUID (0x21)
-	0x19, 0x21,
-	// Our well-known UUID (hand-picked by /dev/random)
-	0x6c, 0x03, 0x8e, 0xb9, 0x8b, 0xf9, 0x17, 0x61,
-	0xfb, 0x2f, 0x8a, 0x92, 0x26, 0xea, 0x43, 0xe0,
+	0x11, 0x07,
 	// timestamp_ms in little endian format
 	0x99, 0x88, 0x99, 0x88, 0x99, 0x88, 0x99, 0x88,
+	// Our well-known UUID (hand-picked by /dev/random)
+	0xfb, 0x2f, 0x8a, 0x92, 0x26, 0xea, 0x43, 0xe0,
 };
 
 static uint8_t rx_pkt_buf[MAX_RX_BYTES+1];
@@ -121,7 +120,7 @@ static void kickoff_tx(void)
 
 	uint64_t current_time = last_timestamp_ms;
 	current_time += k_uptime_get() - last_timestamp_ktime;
-	memcpy(&timebeacon_pkt[26], &current_time, 8);
+	memcpy(&timebeacon_pkt[10], &current_time, 8);
 
 	nrf_radio_int_disable(NRF_RADIO, ~0);
 	nrf_radio_int_enable(NRF_RADIO, NRF_RADIO_INT_DISABLED_MASK);
@@ -527,7 +526,7 @@ static void process_usb_uart_cmd(const char *cmd)
 		// 2) Mangle the TX UUID so it doesn't confuse "production"
 		//    devices listening for the time
 		memcpy((uint8_t *)rx_filter, test_filter, sizeof(test_filter));
-		timebeacon_pkt[10] = 0x00;
+		timebeacon_pkt[18] = 0x00;
 		start_radio_loop();
 		return;
 	}
