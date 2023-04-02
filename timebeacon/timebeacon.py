@@ -14,11 +14,8 @@ class GoveeReport:
             raise ValueError
 
         # GVH5177
-        if len(self.data) == 39 and self.data[29:33] == b"\x09\xff\x01\x00":
-            self.valid = True
-        else:
-            self.valid = False
-            return
+        if len(self.data) != 39 or self.data[29:33] != b"\x09\xff\x01\x00":
+            raise ValueError
 
         self.mac = "%02x:%02x:%02x:%02x:%02x:%02x" % (
             self.data[7], self.data[6], self.data[5],
@@ -32,11 +29,8 @@ class GoveeReport:
         self.humidity = encoded_data % 1000 / 10
 
     def __str__(self):
-        if not self.valid:
-            return "unknown"
-        else:
-            return "[mac=%s temp_c=%d temp_f=%.1f hum=%.1f%% bat=%d%%]" % (
-                self.mac, self.temp_c, self.temp_f, self.humidity, self.battery)
+        return "[mac=%s temp_c=%d temp_f=%.1f hum=%.1f%% bat=%d%%]" % (
+            self.mac, self.temp_c, self.temp_f, self.humidity, self.battery)
 
 class Timebeacon:
     def __init__(self, devname):
@@ -44,9 +38,13 @@ class Timebeacon:
         import serial
 
         self.uart = serial.Serial(devname, timeout=5)
+        self.uart.write(b"\x15")
+        self.parsers = list()
 
-        # match 16-bit UUID 0xec88 in Govee advertising packets
-        self.uart.write(b"\x15F030388EC\n")
+    def add_parser(self, filt, parser):
+        cmd = "F" + "".join(map(lambda b: "%02x" % b, filt)) + "\n"
+        self.uart.write(bytes(cmd, "utf-8"))
+        self.parsers.append(parser)
 
     def run(self):
         next_timestamp = 0
@@ -71,11 +69,13 @@ class Timebeacon:
                 matches = None
 
             if matches:
-                try:
-                    g = GoveeReport(matches.group(1))
-                    print(g)
-                except ValueError:
-                    pass
+                for p in self.parsers:
+                    try:
+                        data = p(matches.group(1))
+                        print(data)
+                        break
+                    except ValueError:
+                        pass
 
     def send_timestamp(self, now):
         ts = self.localtime_to_time_t(now)
@@ -101,7 +101,12 @@ def main():
     else:
         devname = DEFAULT_TIMEBEACON_DEV
 
-    Timebeacon(devname).run()
+    tb = Timebeacon(devname)
+
+    # match 16-bit UUID 0xec88 in Govee advertising packets
+    tb.add_parser([0x03, 0x03, 0x88, 0xec], GoveeReport)
+
+    tb.run()
 
 if __name__ == "__main__":
     sys.exit(main())
