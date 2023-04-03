@@ -2,7 +2,7 @@
 
 DEFAULT_TIMEBEACON_DEV = "/dev/timebeacon"
 
-import calendar, time, os, re, sys
+import asyncio, calendar, logging, re, sys, time
 
 class GoveeReport:
     def __init__(self, data):
@@ -36,52 +36,98 @@ class Timebeacon:
     def __init__(self, devname):
         global serial
         import serial
-
-        self.uart = serial.Serial(devname, timeout=5)
-        self.uart.write(b"\x15")
+        self.devname = devname
         self.parsers = list()
+        self.adv_re = re.compile("M(([0-9a-f]{2})+)", re.IGNORECASE)
 
-    def add_parser(self, filt, parser):
-        cmd = "F" + "".join(map(lambda b: "%02x" % b, filt)) + "\n"
-        self.uart.write(bytes(cmd, "utf-8"))
-        self.parsers.append(parser)
+    def add_parser(self, filt, parser, cb):
+        self.parsers.append((filt, parser, cb))
 
-    def run(self):
-        next_timestamp = 0
-        data_re = re.compile("M(([0-9a-f]{2})+)\r\n", re.IGNORECASE)
+    async def start(self):
+        self.restart()
 
-        while True:
-            now = time.time()
-            if now > next_timestamp:
-                self.send_timestamp(now)
-                next_timestamp = now + 10
-                print("[TIMESTAMP]")
+    def restart(self):
+        self.uart = serial.Serial(self.devname)
+        self.line = b""
+        self.loop = asyncio.get_event_loop()
+        self.loop.add_reader(self.uart, self.on_uart_rx)
 
-            # read a single '\n' terminated line
-            # This may generate an exception if there is a serial port issue
-            line = self.uart.read_until()
+        self.uart.write(b"\x15")
+        for (filt, parser, cb) in self.parsers:
+            cmd = "F" + "".join(map(lambda b: "%02x" % b, filt)) + "\n"
+            self.uart.write(bytes(cmd, "utf-8"))
+        self.send_timestamp()
 
+    def on_uart_ioerror(self):
+        logging.warning("%s is disconnected" % self.devname)
+        try:
+            self.loop.remove_reader(self.uart)
+        except:
+            pass
+
+        try:
+            self.uart.close()
+        except:
+            pass
+
+        if self.timestamp_task != None:
+            self.timestamp_task.cancel()
+            self.timestamp_task = None
+
+        self.uart = None
+        self.loop.call_later(5, self.reconnect)
+
+    def reconnect(self):
+        logging.debug("retrying timebeacon %s" % self.devname)
+
+        try:
+            self.restart()
+            logging.info("%s is reconnected" % self.devname)
+        except:
+            self.on_uart_ioerror()
+
+    def on_uart_rx(self):
+        try:
+            c = self.uart.read(1)
+        except serial.serialutil.SerialException:
+            self.on_uart_ioerror()
+            return
+
+        if c == b"\r" or c == b"\n":
+            if len(self.line) > 0:
+                self.handle_line(self.line)
+            self.line = b""
+        else:
+            self.line += c
+
+    def handle_line(self, line):
+        try:
+            # if the data is junk, this might throw an exception
+            line = str(line, "utf-8")
+            matches = self.adv_re.match(line)
+        except:
+            matches = None
+
+        if not matches:
+            return
+
+        for (filt, parser, cb) in self.parsers:
             try:
-                # if the data is junk, this might throw an exception
-                line = str(line, "utf-8")
-                matches = data_re.match(line)
-            except:
-                matches = None
+                data = parser(matches.group(1))
+                cb(data)
+                break
+            except ValueError:
+                pass
 
-            if matches:
-                for p in self.parsers:
-                    try:
-                        data = p(matches.group(1))
-                        print(data)
-                        break
-                    except ValueError:
-                        pass
-
-    def send_timestamp(self, now):
+    def send_timestamp(self):
+        logging.debug("timebeacon: sending timestamp")
+        now = time.time()
         ts = self.localtime_to_time_t(now)
 
         # send millisecond timestamp, hex, big endian
         self.uart.write(bytes("T%016x\n" % round(ts * 1000), "utf-8"))
+
+        self.timestamp_task = self.loop.call_later(10, self.send_timestamp)
 
     def localtime_to_time_t(self, now):
         # Create a UNIX time_t value representing the current
@@ -95,7 +141,12 @@ class Timebeacon:
 
         return calendar.timegm(time.localtime(t)) + fraction
 
+def demo_cb(x):
+    logging.info(x)
+
 def main():
+    logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
+
     if len(sys.argv) > 1:
         devname = sys.argv[1]
     else:
@@ -104,9 +155,10 @@ def main():
     tb = Timebeacon(devname)
 
     # match 16-bit UUID 0xec88 in Govee advertising packets
-    tb.add_parser([0x03, 0x03, 0x88, 0xec], GoveeReport)
-
-    tb.run()
+    tb.add_parser([0x03, 0x03, 0x88, 0xec], GoveeReport, demo_cb)
+    loop = asyncio.new_event_loop()
+    loop.create_task(tb.start())
+    loop.run_forever()
 
 if __name__ == "__main__":
     sys.exit(main())
