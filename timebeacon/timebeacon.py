@@ -23,13 +23,13 @@ class GoveeReport:
         self.battery = self.data[38]
 
         encoded_data = (self.data[35] << 16 |
-            self.data[36] << 8 | self.data[35])
-        self.temp_c = round(encoded_data / 10000)
+            self.data[36] << 8 | self.data[37])
+        self.temp_c = round(encoded_data / 10000, 1)
         self.temp_f = round(self.temp_c * 1.8 + 32, 1)
         self.humidity = encoded_data % 1000 / 10
 
     def __str__(self):
-        return "[mac=%s temp_c=%d temp_f=%.1f hum=%.1f%% bat=%d%%]" % (
+        return "[mac=%s temp_c=%.1f temp_f=%.1f hum=%.1f%% bat=%d%%]" % (
             self.mac, self.temp_c, self.temp_f, self.humidity, self.battery)
 
 class Timebeacon:
