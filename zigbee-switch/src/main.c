@@ -62,6 +62,15 @@ extern zb_af_endpoint_desc_t zigbee_fota_client_ep;
 #define REJOIN_INTERVAL_MS		(60 * 60 * 1000)
 #define REJOIN_ATTEMPT_LIMIT		24
 
+// Long press for full brightness
+#define DEFAULT_LONG_PRESS_TIME_MS	1000
+
+// Extra long press for device reboot
+#define DEFAULT_REBOOT_PRESS_TIME_MS	7000
+
+// Hold down internal SW0 at boot time for factory (NVRAM) reset
+#define FACTORY_RESET_DURATION_MS			2000
+
 /* Do not erase NVRAM to save the network parameters after device reboot or
  * power-off. NOTE: If this option is set to ZB_TRUE then do full device erase
  * for all network devices before running other samples.
@@ -412,13 +421,15 @@ static void button_long_press_handler(struct k_timer *work)
 	struct sw *sw = CONTAINER_OF(work, struct sw, button_press_timer);
 	int64_t duration = k_uptime_get() - sw->press_time;
 
-	if (duration >= 8000) {
+	if (duration >= DEFAULT_REBOOT_PRESS_TIME_MS) {
 		if (sw->button_idx == RESET_BUTTON) {
 			sys_reboot(SYS_REBOOT_COLD);
 		}
-	} else if (duration >= 2000) {
+	} else if (duration >= DEFAULT_LONG_PRESS_TIME_MS) {
+		const k_timeout_t additional_time = K_MSEC(
+			DEFAULT_REBOOT_PRESS_TIME_MS - DEFAULT_LONG_PRESS_TIME_MS);
 		invoke_light_switch_sender(sw->button_idx | FLAG_LONG_PRESS);
-		k_timer_start(&sw->button_press_timer, K_MSEC(6000), K_NO_WAIT);
+		k_timer_start(&sw->button_press_timer, additional_time, K_NO_WAIT);
 	}
 }
 
@@ -459,7 +470,8 @@ static void button_debounce_handler(struct k_timer *work)
 	int val = gpio_pin_get_dt(sw->gpio);
 	if (val) {
 		sw->press_time = k_uptime_get();
-		k_timer_start(&sw->button_press_timer, K_MSEC(2000), K_NO_WAIT);
+		k_timer_start(&sw->button_press_timer,
+			K_MSEC(DEFAULT_LONG_PRESS_TIME_MS), K_NO_WAIT);
 		k_work_submit(&sw->button_pressed_work);
 	} else {
 		k_timer_stop(&sw->button_press_timer);
@@ -584,8 +596,6 @@ static void configure_leds(struct led_state *state)
 #endif /* USE_LEDS */
 }
 
-#define SW_RESET_DURATION_MS			2000
-
 static void reset_on_sw1(void)
 {
 #if USE_LEDS
@@ -607,7 +617,7 @@ static void reset_on_sw1(void)
 		gpio_pin_set_dt(&led_gpio, 1);
 
 		uint32_t now = k_uptime_get_32();
-		if ((now - start_time) > SW_RESET_DURATION_MS) {
+		if ((now - start_time) > FACTORY_RESET_DURATION_MS) {
 			zb_nvram_erase();
 			gpio_pin_set_dt(&led_gpio, 0);
 			k_sleep(K_SECONDS(2));
