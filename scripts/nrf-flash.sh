@@ -13,8 +13,11 @@ if [ -n "${1:-}" ]; then
 else
 	HEXFILE="${BUILDDIR}/zephyr/merged.hex"
 	if [ ! -e "${HEXFILE}" ]; then
-		echo "Can't find zephyr/merged.hex"
-		exit 1
+		HEXFILE="${BUILDDIR}/zephyr/zephyr.hex"
+		if [ ! -e "${HEXFILE}" ]; then
+			echo "Can't find zephyr/merged.hex or zephyr.hex"
+			exit 1
+		fi
 	fi
 fi
 
