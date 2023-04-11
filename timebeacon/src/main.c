@@ -506,11 +506,20 @@ static void update_timestamp(uint8_t *timestamp_bytes)
 
 	unsigned int key = irq_lock();
 
+	bool delta_valid = last_timestamp_ktime != 0;
+	int64_t timestamp_delta = new_timestamp - last_timestamp_ms;
+	int64_t ktime_delta = usb_uart_ktime - last_timestamp_ktime;
+
 	last_timestamp_ms = new_timestamp;
 	last_timestamp_ktime = usb_uart_ktime;
 
 	irq_unlock(key);
 	start_radio_loop();
+
+	if (delta_valid) {
+		LOG_INF("%s: delta is %lld", __func__,
+			timestamp_delta - ktime_delta);
+	}
 }
 
 static void process_usb_uart_cmd(const char *cmd)
