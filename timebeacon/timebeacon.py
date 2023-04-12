@@ -121,11 +121,13 @@ class Timebeacon:
 
     def send_timestamp(self):
         logging.debug("timebeacon: sending timestamp")
-        now = time.time()
+        self.uart.flush()
+        now = time.time_ns()
         ts = self.localtime_to_time_t(now)
 
         # send millisecond timestamp, hex, big endian
-        self.uart.write(bytes("T%016x\n" % round(ts * 1000), "utf-8"))
+        self.uart.write(bytes("T%016x\n" % round(ts / 1000000), "utf-8"))
+        self.uart.flush()
 
         self.timestamp_task = self.loop.call_later(10, self.send_timestamp)
 
@@ -136,10 +138,10 @@ class Timebeacon:
         #
         # This allows all timezone/DST calculations to be done
         # on the transmitter rather than the receiver
-        t = int(now)
-        fraction = t - now
+        t = int(now / 1000000000)
+        fraction = now % 1000000000
 
-        return calendar.timegm(time.localtime(t)) + fraction
+        return calendar.timegm(time.localtime(t)) * 1000000000 + fraction
 
 def demo_cb(x):
     logging.info(x)
