@@ -24,6 +24,12 @@ class GoveeReport:
 
         encoded_data = (self.data[35] << 16 |
             self.data[36] << 8 | self.data[37])
+
+        # GVH5177 can send out valid-looking advertisements with empty
+        # sensor data if the battery is almost dead
+        if encoded_data == 0xffffff:
+            raise ValueError
+
         self.temp_c = round(encoded_data / 10000, 1)
         self.temp_f = round(self.temp_c * 1.8 + 32, 1)
         self.humidity = encoded_data % 1000 / 10
